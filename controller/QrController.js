@@ -7,7 +7,7 @@ exports.Qrcode = async (req, res) => {
 //  console.log('inside qr');
  try {
   const slug = uuidv4(); 
-  const qrUrl = `http://192.168.21.56:5000/api/scan/${slug}`; // Include slug in the URL
+  const qrUrl = `https://qr-code-scanner-server.onrender.com/api/scan/${slug}`; // Include slug in the URL
 
   // Generate QR code as a PNG image buffer
   QRCode.toBuffer(qrUrl, { type: "png" }, (err, buffer) => {
