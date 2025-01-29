@@ -2,6 +2,9 @@ const QRCode = require("qrcode"); // QR code generation library
 const { v4: uuidv4 } = require("uuid"); // Import UUID generator
 const ScanLog = require("../models/QrSchema"); // Adjust the path to your model
 
+const getIpAddress = (req) => {
+  return req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "Unknown IP";
+};
 
 exports.Qrcode = async (req, res) => {
 //  console.log('inside qr');
@@ -26,12 +29,20 @@ exports.Qrcode = async (req, res) => {
 
 exports.ScanDetails = async (req, res) => {
   try {
-    const { slug } = req.params; // Extract the slug from the request URL
     const sourceIdentifier = req.headers["user-agent"]; // Get User-Agent
-    const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress; // Get IP address
+    const ipAddress = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+    
 
-    // Log the request for debugging
-    console.log(`Slug: ${slug}, Source: ${sourceIdentifier}, IP: ${ipAddress}`);
+    // Extract only the last two parts of the IP address (e.g., "192.168.21.77" → "21.77")
+    const ipParts = ipAddress.split(".");
+    const shortIP = ipParts.length > 2 ? `${ipParts[ipParts.length - 2]}.${ipParts[ipParts.length - 1]}` : ipAddress;
+
+    // Extract key details from User-Agent (e.g., "Android 10 - Chrome")
+    let shortUA = sourceIdentifier.match(/(Android|Windows|Mac|iPhone|iPad|Linux)[^;)]*/i);
+    shortUA = shortUA ? shortUA[0].replace(/[^a-zA-Z0-9]/g, "") : "Generic";
+
+    // Generate a shorter unique slug
+    const deviceSlug = `${uuidv4().slice(0, 8)}-${shortIP}-${shortUA}`;
 
     // Check if a scan record exists
     const existingScan = await ScanLog.findOne({ sourceIdentifier });
@@ -49,7 +60,7 @@ exports.ScanDetails = async (req, res) => {
 
     // If no existing scan is found, save a new entry
     const scanEntry = new ScanLog({
-      slug,
+      slug:deviceSlug,
       sourceIdentifier,
       ipAddress,
     });
@@ -68,9 +79,20 @@ exports.ScanDetails = async (req, res) => {
 
 exports.ScanDetailsGet = async (req, res) => {
   try {
-    const { slug } = req.params;
     const sourceIdentifier = req.headers["user-agent"];
-    const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const ipAddress = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+
+    
+    // Extract only the last two parts of the IP address (e.g., "192.168.21.77" → "21.77")
+    const ipParts = ipAddress.split(".");
+    const shortIP = ipParts.length > 2 ? `${ipParts[ipParts.length - 2]}.${ipParts[ipParts.length - 1]}` : ipAddress;
+
+    // Extract key details from User-Agent (e.g., "Android 10 - Chrome")
+    let shortUA = sourceIdentifier.match(/(Android|Windows|Mac|iPhone|iPad|Linux)[^;)]*/i);
+    shortUA = shortUA ? shortUA[0].replace(/[^a-zA-Z0-9]/g, "") : "Generic";
+
+    // Generate a shorter unique slug
+    const deviceSlug = `${uuidv4().slice(0, 8)}-${shortIP}-${shortUA}`;
 
     // Check if the source has already scanned
     const existingScan = await ScanLog.findOne({ sourceIdentifier });
@@ -93,7 +115,7 @@ exports.ScanDetailsGet = async (req, res) => {
 
     // Save a new scan entry if not found
     const scanEntry = new ScanLog({
-      slug,
+      slug:deviceSlug,
       sourceIdentifier,
       ipAddress,
     });
