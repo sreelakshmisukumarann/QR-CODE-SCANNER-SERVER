@@ -34,7 +34,7 @@ exports.ScanDetails = async (req, res) => {
     console.log(`Slug: ${slug}, Source: ${sourceIdentifier}, IP: ${ipAddress}`);
 
     // Check if a scan record exists
-    const existingScan = await ScanLog.findOne({ slug });
+    const existingScan = await ScanLog.findOne({ sourceIdentifier });
 
     if (existingScan) {
       // Update timestamp of the existing entry
