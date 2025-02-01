@@ -16,7 +16,7 @@ QRServer.use(cors())
 QRServer.use(routes)
 
 
-const PORT = 5000 || process.env.PORT
+const PORT = process.env.PORT || 5000
 
 QRServer.listen(PORT,()=>{
     console.log(`server running at ${PORT}`);

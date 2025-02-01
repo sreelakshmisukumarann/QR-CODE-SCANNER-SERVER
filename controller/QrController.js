@@ -139,9 +139,8 @@ exports.ScanDetailsGet = async (req, res) => {
 
 exports.GetScanDetailsBySlug = async (req, res) => {
   try {
-    const { slug } = req.params; // Get the slug from the URL parameters
+    const { slug } = req.params; 
 
-    // Fetch the scan details from the database by slug
     const scanDetails = await ScanLog.findOne({ slug });
 
     // If no scan details are found, return a 404 response
