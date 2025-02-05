@@ -10,7 +10,7 @@ exports.Qrcode = async (req, res) => {
 //  console.log('inside qr');
  try {
   const slug = uuidv4(); 
-  const qrUrl = `https://qr-code-scanner-server.onrender.com/api/scan/${slug}`; // Include slug in the URL
+  const qrUrl = `http://192.168.134.56:5000/api/scan/${slug}`; // Include slug in the URL
 
   // Generate QR code as a PNG image buffer
   QRCode.toBuffer(qrUrl, { type: "png" }, (err, buffer) => {
@@ -32,7 +32,6 @@ exports.ScanDetails = async (req, res) => {
     const sourceIdentifier = req.headers["user-agent"]; // Get User-Agent
     const ipAddress = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
     
-
     // Extract only the last two parts of the IP address (e.g., "192.168.21.77" → "21.77")
     const ipParts = ipAddress.split(".");
     const shortIP = ipParts.length > 2 ? `${ipParts[ipParts.length - 2]}.${ipParts[ipParts.length - 1]}` : ipAddress;
@@ -52,30 +51,60 @@ exports.ScanDetails = async (req, res) => {
       existingScan.timestamp = new Date();
       await existingScan.save();
 
-      return res.status(200).json({
-        message: "Scan details updated successfully",
-        data: { slug, sourceIdentifier, ipAddress },
-      });
+      // Push event to GTM Data Layer (only if it's a new scan attempt)
+      return res.status(200).send(`
+        <html>
+          <head><title>QR Code Scanned Again</title></head>
+          <body style="text-align: center; font-family: Arial, sans-serif;">
+            <h1>QR Code Scanned Again</h1>
+            <p>Your details have been updated. Thank you!</p>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              window.dataLayer.push({
+                event: "qr_scan_success",
+                scan_source: "QR Code",
+                device_info: "${sourceIdentifier}",
+                user_ip: "${ipAddress}"
+              });
+            </script>
+          </body>
+        </html>
+      `);
     }
 
     // If no existing scan is found, save a new entry
     const scanEntry = new ScanLog({
-      slug:deviceSlug,
+      slug: deviceSlug,
       sourceIdentifier,
       ipAddress,
     });
 
     await scanEntry.save();
 
-    res.status(200).json({
-      message: "Scan details logged successfully",
-      data: { slug, sourceIdentifier, ipAddress },
-    });
+    res.status(200).send(`
+      <html>
+        <head><title>QR Code Scanned</title></head>
+        <body style="text-align: center; font-family: Arial, sans-serif;">
+          <h1>QR Code Scanned Successfully</h1>
+          <p>Thank you for scanning the QR code!</p>
+          <script>
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+              event: "qr_scan_success",
+              scan_source: "QR Code",
+              device_info: "${sourceIdentifier}",
+              user_ip: "${ipAddress}"
+            });
+          </script>
+        </body>
+      </html>
+    `);
   } catch (error) {
     console.error("Error logging scan details:", error);
-    res.status(500).json({ message: "Error logging scan details" });
+    res.status(500).send("Error logging scan details.");
   }
 };
+
 
 exports.ScanDetailsGet = async (req, res) => {
   try {
