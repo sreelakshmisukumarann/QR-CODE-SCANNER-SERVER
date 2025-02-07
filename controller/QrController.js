@@ -9,35 +9,6 @@ const getIpAddress = (req) => {
   return req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "Unknown IP";
 };
 
-async function getGeoLocation(ip) {
-  try {
-    if (!ip || ip.startsWith("192.168") || ip === "127.0.0.1") {
-      return { country: "Local Network", region: "N/A", city: "N/A", isp: "N/A", lat: null, lon: null };
-    }
-
-    // Use dynamic IP for geolocation request
-    const response = await fetch(`https://ipinfo.io/${ip}/json?token=cec3a0a6f57f93`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    return {
-      country: data.country || "Unknown",
-      region: data.region || "Unknown",
-      city: data.city || "Unknown",
-      isp: data.org || "Unknown",
-      lat: data.loc ? data.loc.split(",")[0] : null,
-      lon: data.loc ? data.loc.split(",")[1] : null,
-    };
-  } catch (error) {
-    console.error("Error fetching geolocation:", error);
-    return { country: "Unknown", region: "Unknown", city: "Unknown", isp: "Unknown", lat: null, lon: null };
-  }
-}
-
 // Generate QR Code
 exports.Qrcode = async (req, res) => {
   try {
@@ -78,10 +49,6 @@ exports.ScanDetails = async (req, res) => {
     const browserName = uaResult.browser.name || "Unknown Browser";
     const browserVersion = uaResult.browser.version || "Unknown Version";
 
-    // Get Geolocation Data
-    const geoData = await getGeoLocation(ipAddress);
-    console.log("Geolocation Data:", geoData); // Log location details
-
     const slug = `${uuidv4().slice(0, 8)}-${shortIP}-${osName}`;
 
     const existingScan = await ScanLog.findOne({ sourceIdentifier });
@@ -105,12 +72,6 @@ exports.ScanDetails = async (req, res) => {
       osVersion,
       browserName,
       browserVersion,
-      country: geoData.country,
-      region: geoData.region,
-      city: geoData.city,
-      isp: geoData.isp,
-      latitude: geoData.lat,
-      longitude: geoData.lon,
     });
 
     await scanEntry.save();
