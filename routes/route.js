@@ -9,7 +9,6 @@ router.get("/api/qr", QrController.Qrcode);
 // Route to handle QR scan
 router.get("/api/scan/:slug", QrController.ScanDetails);
 
-// Route to update device model after scanning
-router.post("/api/update-device-model", QrController.UpdateDeviceModel);
+router.get('/api/scan/details/:slug', QrController.GetScanDetailsBySlug);
 
 module.exports = router;
